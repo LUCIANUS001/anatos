@@ -4,7 +4,7 @@ import MCQSection from "@/components/lesson/MCQSection";
 import { humerusLesson } from "@/data/lessons/anatomy/humerus";
 
 export default function QuizPage() {
-  const questions = humerusLesson.mcqs;
+  const questions = humerusLesson.mcqs ?? [];
 
   return (
     <main className="min-h-screen bg-slate-100">

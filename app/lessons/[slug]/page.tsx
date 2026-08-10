@@ -29,6 +29,9 @@ import InfoBox from "@/components/lesson/InfoBox";
 import { anatomyLessons } from "@/data/lessons/anatomy";
 import AtlasSection from "@/components/atlas/AtlasSection";
 
+import { getLearningUnitBySlug } from "@/data/curriculum";
+import { toLegacyLesson } from "@/data/curriculum/adapter";
+
 import AnatOSAI from "@/components/ai/AnatOSAI";
 import { buildLessonContext } from "@/components/ai/AIContext";
 
@@ -41,13 +44,37 @@ interface PageProps {
 export default async function LessonPage({ params }: PageProps) {
   const { slug } = await params;
 
-  const lesson = anatomyLessons[slug as keyof typeof anatomyLessons];
+  const registryResult = getLearningUnitBySlug(slug);
 
-  const aiContext = buildLessonContext(lesson.slug, lesson.title);
+  let lesson = registryResult ? toLegacyLesson(registryResult) : anatomyLessons[slug as keyof typeof anatomyLessons];
 
   if (!lesson) {
     notFound();
   }
+
+  // Normalize commonly used fields for UI components to satisfy strict typings.
+  // This keeps changes localized to the page and preserves the original lesson data.
+  const objectivesArr: string[] = (lesson.objectives ?? []).map((o: any) => (typeof o === "string" ? o : o.text ?? String(o)));
+
+  // Atlas may be typed as unknown in Lesson — coerce to the atlas types used by AtlasSection.
+  // Importing the type inline to avoid broad changes.
+  type LessonAtlasType = import("@/components/atlas/types").LessonAtlas;
+  const atlas = (lesson.atlas ?? {}) as LessonAtlasType;
+
+  const outline = lesson.outline ?? [];
+  const description = lesson.description ?? "";
+  const category = lesson.category ?? "";
+  const difficulty = lesson.difficulty ?? "Beginner";
+  const readingTime = lesson.readingTime ?? "";
+
+  const mcqs = lesson.mcqs ?? [];
+  const vivaQuestions = lesson.viva ?? [];
+  const flashcards = lesson.flashcards ?? [];
+  const clinical = lesson.clinical ?? [];
+  const practical = lesson.practical ?? [];
+  const relatedTopics = (lesson.relatedTopics ?? []) as any[];
+
+  const aiContext = buildLessonContext(lesson.slug, lesson.title);
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -73,7 +100,7 @@ export default async function LessonPage({ params }: PageProps) {
         <div className="grid gap-10 lg:grid-cols-3">
           {/* LEFT SIDEBAR */}
           <div>
-            <LessonOutline sections={lesson.outline} />
+            <LessonOutline sections={outline} />
           </div>
 
           {/* MAIN CONTENT */}
@@ -97,7 +124,7 @@ export default async function LessonPage({ params }: PageProps) {
 
             <LessonTracker sectionId="learning-objectives">
               <div id="learning-objectives" className="scroll-mt-28">
-                <LessonObjectives objectives={lesson.objectives} />
+                <LessonObjectives objectives={objectivesArr} />
               </div>
             </LessonTracker>
 
@@ -106,10 +133,10 @@ export default async function LessonPage({ params }: PageProps) {
                 <LessonContent
                   id="definition"
                   title="Definition"
-                  content={lesson.definition}
+                  content={(lesson.definition ?? "") as string}
                 />
 
-                <AtlasSection section={lesson.atlas.definition} />
+                <AtlasSection section={atlas.definition} />
               </div>
             </LessonTracker>
 
@@ -118,10 +145,10 @@ export default async function LessonPage({ params }: PageProps) {
                 <LessonContent
                   id="introduction"
                   title="Introduction"
-                  content={lesson.introduction}
+                  content={(lesson.introduction ?? "") as string}
                 />
 
-                <AtlasSection section={lesson.atlas.introduction} />
+                <AtlasSection section={atlas.introduction} />
               </div>
             </LessonTracker>
 
@@ -130,10 +157,10 @@ export default async function LessonPage({ params }: PageProps) {
                 <LessonContent
                   id="anatomical-position"
                   title="Anatomical Position"
-                  content={lesson.anatomicalPosition}
+                  content={(lesson.anatomicalPosition ?? "") as string}
                 />
 
-                <AtlasSection section={lesson.atlas.anatomicalPosition} />
+                <AtlasSection section={atlas.anatomicalPosition} />
               </div>
             </LessonTracker>
 
@@ -142,10 +169,10 @@ export default async function LessonPage({ params }: PageProps) {
                 <LessonContent
                   id="side-determination"
                   title="Side Determination"
-                  content={lesson.sideDetermination}
+                  content={(lesson.sideDetermination ?? "") as string}
                 />
 
-                <AtlasSection section={lesson.atlas.sideDetermination} />
+                <AtlasSection section={atlas.sideDetermination} />
               </div>
             </LessonTracker>
 
@@ -154,10 +181,10 @@ export default async function LessonPage({ params }: PageProps) {
                 <LessonContent
                   id="features"
                   title="Features"
-                  content={lesson.features}
+                  content={(lesson.features ?? "") as string}
                 />
 
-                <AtlasSection section={lesson.atlas.features} />
+                <AtlasSection section={atlas.features} />
               </div>
             </LessonTracker>
 
@@ -166,7 +193,7 @@ export default async function LessonPage({ params }: PageProps) {
                 <LessonContent
                   id="relations"
                   title="Relations"
-                  content={lesson.relations}
+                  content={(lesson.relations ?? "") as string}
                 />
               </div>
             </LessonTracker>
@@ -176,34 +203,34 @@ export default async function LessonPage({ params }: PageProps) {
                 <LessonContent
                   id="surface-anatomy"
                   title="Surface Anatomy"
-                  content={lesson.surfaceAnatomy}
+                  content={(lesson.surfaceAnatomy ?? "") as string}
                 />
 
-                <AtlasSection section={lesson.atlas.surfaceAnatomy} />
+                <AtlasSection section={atlas.surfaceAnatomy} />
               </div>
             </LessonTracker>
 
             <LessonTracker sectionId="blood-supply">
               <div className="mt-8">
-                <BloodSupply vessels={lesson.bloodSupply} />
+                <BloodSupply vessels={(lesson.bloodSupply ?? []) as any} />
 
-                <AtlasSection section={lesson.atlas.bloodSupply} />
+                <AtlasSection section={atlas.bloodSupply} />
               </div>
             </LessonTracker>
 
             <LessonTracker sectionId="nerve-supply">
               <div className="mt-8">
-                <NerveSupply nerves={lesson.nerves} />
+                <NerveSupply nerves={(lesson.nerves ?? []) as any} />
 
-                <AtlasSection section={lesson.atlas.nerves} />
+                <AtlasSection section={atlas.nerves} />
               </div>
             </LessonTracker>
 
             <LessonTracker sectionId="muscle-attachments">
               <div className="mt-8">
-                <MuscleAttachments attachments={lesson.muscles} />
+                <MuscleAttachments attachments={(lesson.muscles ?? []) as any} />
 
-                <AtlasSection section={lesson.atlas.muscles} />
+                <AtlasSection section={atlas.muscles} />
               </div>
             </LessonTracker>
 
@@ -212,10 +239,10 @@ export default async function LessonPage({ params }: PageProps) {
                 <LessonContent
                   id="ossification"
                   title="Ossification"
-                  content={lesson.ossification}
+                  content={(lesson.ossification ?? "") as string}
                 />
 
-                <AtlasSection section={lesson.atlas.ossification} />
+                <AtlasSection section={atlas.ossification} />
               </div>
             </LessonTracker>
 
@@ -224,10 +251,10 @@ export default async function LessonPage({ params }: PageProps) {
                 <LessonContent
                   id="development"
                   title="Development"
-                  content={lesson.development}
+                  content={(lesson.development ?? "") as string}
                 />
 
-                <AtlasSection section={lesson.atlas.development} />
+                <AtlasSection section={atlas.development} />
               </div>
             </LessonTracker>
 
@@ -236,7 +263,7 @@ export default async function LessonPage({ params }: PageProps) {
                 <LessonContent
                   id="variations"
                   title="Variations"
-                  content={lesson.variations}
+                  content={(lesson.variations ?? "") as string}
                 />
               </div>
             </LessonTracker>
@@ -246,34 +273,34 @@ export default async function LessonPage({ params }: PageProps) {
                 <LessonContent
                   id="radiological-anatomy"
                   title="Radiological Anatomy"
-                  content={lesson.radiologicalAnatomy}
+                  content={(lesson.radiologicalAnatomy ?? "") as string}
                 />
 
-                <AtlasSection section={lesson.atlas.radiologicalAnatomy} />
+                <AtlasSection section={atlas.radiologicalAnatomy} />
               </div>
             </LessonTracker>
 
             <LessonTracker sectionId="clinical-correlation">
               <div className="mt-8">
-                <ClinicalCorrelation items={lesson.clinical} />
+                <ClinicalCorrelation items={(clinical ?? []) as any} />
 
-                <AtlasSection section={lesson.atlas.clinical} />
+                <AtlasSection section={atlas.clinical} />
               </div>
             </LessonTracker>
 
             <LessonTracker sectionId="practical-anatomy">
               <div className="mt-8">
-                <PracticalSection items={lesson.practical} />
+                <PracticalSection items={(practical ?? []) as any} />
 
-                <AtlasSection section={lesson.atlas.practical} />
+                <AtlasSection section={atlas.practical} />
               </div>
             </LessonTracker>
 
             <LessonTracker sectionId="anatomy-landmarks">
               <div className="mt-8">
-                <AnatomyLandmarks landmarks={lesson.landmarks} />
+                <AnatomyLandmarks landmarks={(lesson.landmarks ?? []) as any} />
 
-                <AtlasSection section={lesson.atlas.landmarks} />
+                <AtlasSection section={atlas.landmarks} />
               </div>
             </LessonTracker>
 
@@ -282,7 +309,7 @@ export default async function LessonPage({ params }: PageProps) {
                 <LessonContent
                   id="mnemonics"
                   title="Mnemonics"
-                  content={lesson.mnemonics}
+                  content={(lesson.mnemonics ?? "") as string}
                 />
               </div>
             </LessonTracker>
@@ -292,7 +319,7 @@ export default async function LessonPage({ params }: PageProps) {
                 <LessonContent
                   id="summary"
                   title="Summary"
-                  content={lesson.summary}
+                  content={(typeof lesson.summary === 'string' ? (lesson.summary ?? '') : (lesson.summary?.keyPoints?.join('\n') ?? '')) as string}
                 />
               </div>
             </LessonTracker>
@@ -300,9 +327,9 @@ export default async function LessonPage({ params }: PageProps) {
             <LessonTracker sectionId="mcqs">
               <div id="mcqs" className="mt-12 scroll-mt-28">
                 <LessonQuiz
-                  lessonId="humerus"
+                  lessonId={lesson.slug}
                   title={`${lesson.title} Final Assessment`}
-                  questions={lesson.mcqs}
+                  questions={mcqs as any}
                   passingScore={50}
                 />
               </div>
@@ -310,13 +337,13 @@ export default async function LessonPage({ params }: PageProps) {
 
             <LessonTracker sectionId="viva">
               <div id="viva" className="mt-8">
-                <VivaQuestions questions={lesson.viva} />
+                <VivaQuestions questions={vivaQuestions as any} />
               </div>
             </LessonTracker>
 
             <LessonTracker sectionId="flashcards">
               <div id="flashcards" className="mt-8 scroll-mt-28">
-                <FlashcardsSection cards={lesson.flashcards} />
+                <FlashcardsSection cards={(flashcards ?? []) as any} />
               </div>
             </LessonTracker>
 

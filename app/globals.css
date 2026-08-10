@@ -4,6 +4,10 @@
    ANATOS MEDICAL DESIGN SYSTEM
    =========================== */
 
+html {
+  scroll-behavior: smooth;
+}
+
 :root {
   /* Backgrounds */
   --background: #f4f9fb;
